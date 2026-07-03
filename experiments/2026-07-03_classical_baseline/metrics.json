@@ -1,0 +1,6 @@
+{
+  "labeled_frames": 49,
+  "distinct_track_ids_for_ground_truth_cell": 19,
+  "id_switch_rate": 0.375,
+  "note": "ID switches driven by global Hungarian assignment competition in dense tissue, not gate distance \u2014 segmentation-to-groundtruth distances were identical across gate values 6um and 15um. Motivates motion-aware linking (Week 5) over further gate tuning."
+}
