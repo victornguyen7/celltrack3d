@@ -2,7 +2,7 @@
 
 **3D + time cell detection and tracking in zebrafish embryo light-sheet microscopy**
 
-- **Goal:** portfolio-ready, end-to-end pipeline
+- **Goal:** portfolio-ready, end-to-end pipeline (not just a leaderboard script)
 - **Approach:** hybrid — classical CV baseline first, then a deep-learning upgrade layered on top
 - **Timeline:** 6 weeks, structured in weekly milestones
 - **Data:** Kaggle — [Biohub: Cell Tracking During Development](https://www.kaggle.com/competitions/biohub-cell-tracking-during-development)
@@ -51,10 +51,15 @@ path = kagglehub.competition_download('biohub-cell-tracking-during-development')
 print("Path to competition files:", path)
 ```
 
-**What to expect (confirm against the actual download — see Open Questions):**
-- Raw imaging data: 3D+time light-sheet microscopy volumes of developing zebrafish embryos. Given the source lab's usual tooling, expect either chunked volumetric arrays (Zarr/OME-Zarr) or TIFF stacks, likely large enough that lazy/chunked loading matters.
-- Ground truth: cell positions and lineage over time, most plausibly as a CSV/Parquet table of `track_id, t, z, y, x, parent_track_id` (parent_track_id encodes divisions).
-- License: the dataset has been described as released under an open (CC0) license.
+**Confirmed schema (from the Kaggle Data tab, verified):**
+- **Images:** each sample is a `.zarr` (Zarr v3) directory with a single array at path `0/`, shape `(T, Z, Y, X)` — typically `(100, 64, 256, 256)`, dtype `uint16`. Chunked one timepoint at a time: `(1, 64, 256, 256)`, blosc/zstd compressed. Chunk for timepoint `t` lives at `0/c/{t}/0/0/0`; array metadata (shape/dtype/codecs) is in `0/zarr.json`.
+- **Voxel scale (anisotropic):** z = 1.625 µm/voxel, y = x = 0.40625 µm/voxel — z spacing is ~4× coarser than xy. Any physical-distance calculation (watershed seed spacing, nearest-neighbor linking distance) must scale z accordingly or it will be badly wrong.
+- **Ground truth (train only):** `.geff` directories (graph exchange format, also Zarr v3): `nodes/ids`, `nodes/props/{t,z,y,x}/values` (integer voxel centroids per node), `edges/ids` (shape `(N, 2)`, columns `source_id, target_id`). A track is just a chain of edges; a division is a node with two outgoing edges.
+- **Annotations are sparse** — not every visible cell in every frame is labeled. `estimated_number_of_nodes` (in the `.geff` metadata) gives the true total cell count estimate per sample. This matters for evaluation (see Section 8) — precision/recall must be computed against labeled nodes only, not full detection density.
+- **Embryo identity:** folder names are `{embryo_id}_{hash}` (e.g. `44b6_0113de3b`). Train/test are embryo-disjoint. `train/` has ~380+ paired `.zarr`+`.geff` samples; `test/` shown publicly is only 4 example samples (image-only, copies from train) — the real hidden test set is swapped in at submission time, roughly the same size as train.
+- **Submission format:** `sample_submission.csv` columns are `id, dataset, row_type, node_id, t, z, y, x, source_id, target_id` — one CSV with mixed `node`/`edge` rows per `dataset` (sample name), i.e. a flattened version of the same graph structure as `.geff`.
+- **Total size:** 87.61 GB across 24,886 files. License: CC0 (public domain).
+- Each individual `.zarr`+`.geff` sample pair is only on the order of a few hundred MB — small enough to download and work with locally.
 
 **Data folder roles:**
 - `data/raw/` — the untouched kagglehub download. Never edit these files directly.
@@ -262,13 +267,18 @@ Pin exact versions once the environment is built and working — don't lock vers
 
 ---
 
-## 13. Open Questions / Assumptions to Verify After Downloading Data
+## 13. Open Questions / Assumptions
 
-- **Exact raw file format** — likely Zarr/OME-Zarr or TIFF stacks given the source lab's usual tooling, but confirm actual format and dimension order once `kagglehub` finishes downloading.
-- **Exact ground-truth track schema** — assumed `track_id, t, z, y, x, parent_track_id` based on the same lab's inTRACKtive convention; confirm real column names.
-- **Official Kaggle evaluation metric** — the competition's Evaluation page is JS-rendered and wasn't fetchable directly; check it in-browser and update Section 8 accordingly if it differs from the TRA/AOGM-style metric assumed here.
-- **Compute budget** — light-sheet time-lapse volumes can be large; decide early whether you're working locally, on Colab, or in Kaggle Notebooks, and set a downsampling/crop strategy for fast dev iteration accordingly.
-- **Whether to actually submit to the leaderboard** — not required for the portfolio goal, but the entry deadline (Sept 22, 2026) leaves room if you want to treat it as a stretch goal.
+**Resolved (confirmed via the Kaggle Data tab, July 2026):**
+- ~~Exact raw file format~~ → Zarr v3, `(T,Z,Y,X)` uint16, one-timepoint chunks. See Section 4.
+- ~~Ground-truth track schema~~ → `.geff` node/edge graph, not a flat CSV. See Section 4.
+
+**Still open:**
+- **Official Kaggle evaluation metric** — the Data tab describes the format but not the scoring formula; check the competition's Evaluation page directly. Given the sparse-annotation graph format, it's likely some form of graph-matching accuracy (TRA/AOGM-style) restricted to labeled nodes, but confirm before building Section 8's metrics around it.
+- **`zarr` library version** — this is Zarr v3 format, which needs `zarr-python >= 3.0`; pin that explicitly rather than letting pip resolve an older v2-only version.
+- **`.geff` reader** — check whether the `geff` Python package (graph exchange format, used by the Royer lab tooling) is available on PyPI to read these directly, versus reading the underlying Zarr arrays by hand (`nodes/ids`, `nodes/props/.../values`, `edges/ids`) — the manual route always works as a fallback.
+- **Compute budget** — even at a few hundred MB per sample, training a DL segmenter across many samples adds up; confirm local vs. Kaggle Notebook compute budget before Week 4.
+- **Whether to actually submit to the leaderboard** — optional stretch, deadline noted in Section 1.
 
 ---
 
