@@ -193,6 +193,16 @@ Raw volumes (zarr/tiff, 4D)         Ground-truth tracks (csv)
 | Segmentation overlap (IoU / SEG-style) | How well predicted masks overlap ground-truth masks, once mask-level ground truth is available | Week 4 |
 | TRA/AOGM-style graph accuracy | Cost to correct the predicted track graph into the ground-truth graph — the Cell Tracking Challenge standard | Stretch, Week 5–6 |
 
+**Confirmed result — ID switch rate on sample `44b6_0113de3b`, ground-truth chain t=27..75 (49 labeled frames, 48 possible transitions):**
+
+| Pipeline | Segmentation | Linking | Distinct track IDs | ID switch rate |
+|---|---|---|---|---|
+| Classical baseline | Otsu + watershed | Hungarian, physical-distance gated | 19 | 18/48 = 37.5% |
+| DL segmentation only | Cellpose-SAM (2D+stitch) | Hungarian, physical-distance gated | 16 | 15/48 = 31.2% |
+| Full hybrid (Week 5) | Cellpose-SAM (2D+stitch) | LapTrack (LAP with birth/death) | 9 | 8/48 = 16.7% |
+
+Segmentation quality alone gave a modest improvement; switching to a proper LAP-based linker (which allows a detection to go unmatched at a fixed cost instead of forcing a same-size bipartite match) accounted for most of the gain — likely more than any implicit motion modeling. This is a reasoned inference from the mechanism, not something separately isolated by an ablation — worth stating as such in the final report.
+
 ---
 
 ## 9. Milestones & Timeline (6 weeks)
@@ -272,12 +282,13 @@ Pin exact versions once the environment is built and working — don't lock vers
 **Resolved (confirmed via the Kaggle Data tab, July 2026):**
 - ~~Exact raw file format~~ → Zarr v3, `(T,Z,Y,X)` uint16, one-timepoint chunks. See Section 4.
 - ~~Ground-truth track schema~~ → `.geff` node/edge graph, not a flat CSV. See Section 4.
+- ~~(t,z,y,x) axis alignment between volume and graph~~ → verified empirically on sample `44b6_0113de3b`: a labeled centroid lands directly on a bright nucleus in both the MIP and its exact z-slice.
 
 **Still open:**
 - **Official Kaggle evaluation metric** — the Data tab describes the format but not the scoring formula; check the competition's Evaluation page directly. Given the sparse-annotation graph format, it's likely some form of graph-matching accuracy (TRA/AOGM-style) restricted to labeled nodes, but confirm before building Section 8's metrics around it.
 - **`zarr` library version** — this is Zarr v3 format, which needs `zarr-python >= 3.0`; pin that explicitly rather than letting pip resolve an older v2-only version.
 - **`.geff` reader** — check whether the `geff` Python package (graph exchange format, used by the Royer lab tooling) is available on PyPI to read these directly, versus reading the underlying Zarr arrays by hand (`nodes/ids`, `nodes/props/.../values`, `edges/ids`) — the manual route always works as a fallback.
-- **Compute budget** — even at a few hundred MB per sample, training a DL segmenter across many samples adds up; confirm local vs. Kaggle Notebook compute budget before Week 4.
+- **Compute budget** — confirmed, not just a guess: Cellpose-SAM 3D inference on one 100×64×256×256 frame took **1940s (~32 min) on an M-series Mac, even with MPS enabled** (`gpu=True`) — MPS didn't help much here, likely because Cellpose's mask-creation step isn't yet accelerated on Apple Silicon. At that rate, segmenting a 49-frame window would take ~26 hours locally. **Decision: all further multi-frame Cellpose runs move to the Kaggle Notebook (real GPU)** — local dev stays limited to single-frame sanity checks.
 - **Whether to actually submit to the leaderboard** — optional stretch, deadline noted in Section 1.
 
 ---
