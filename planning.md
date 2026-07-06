@@ -203,6 +203,25 @@ Raw volumes (zarr/tiff, 4D)         Ground-truth tracks (csv)
 
 Segmentation quality alone gave a modest improvement; switching to a proper LAP-based linker (which allows a detection to go unmatched at a fixed cost instead of forcing a same-size bipartite match) accounted for most of the gain — likely more than any implicit motion modeling. This is a reasoned inference from the mechanism, not something separately isolated by an ablation — worth stating as such in the final report.
 
+**Multi-sample validation (Week 5.5) — does the result generalize?**
+
+Testing the same DL-segmentation + LapTrack pipeline on 3 samples (18 labeled chains total, 1044 frame-transitions) revealed the single-sample result does **not** generalize uniformly:
+
+| Sample | Chains | Switch rate range | Notes |
+|---|---|---|---|
+| `44b6_0113de3b` | 1 | 16.7% | Original Week 5 result |
+| `44b6_0b24845f` | 2 | 53.8% – 70.0% | Same embryo as above, different FOV — much worse |
+| `6bba_05b6850b` | 16 | 0.0% – 38.5% (mostly under 10%) | Different embryo, mostly strong, some weak chains |
+
+Pooled overall: 8.1% — but reporting only this number would hide the real finding, which is the *variance*, not the average.
+
+**Root-cause investigation of the `44b6_0b24845f` failure** (methodical, not guessed): tested three hypotheses in sequence against direct evidence, not assumption —
+1. *Merged blobs* (segmentation fusing touching cells) — mostly ruled out; only 2/40 frames showed oversized instances near the failing cell.
+2. *Simple dropout* (cell not detected at all) — partially true (15/40 frames had no detection within 15µm), but doesn't explain the persistent 10-30µm offsets in frames that *did* have a nearby detection.
+3. *Low intensity* (dim cell gets missed) — not supported; the cell's peak intensity sat consistently between the frame median and 95th percentile (moderately bright, not dim).
+
+**Honest conclusion:** the failure looks like local competition among several visually-similar, moderately-bright neighboring cells rather than one single clean, fixable mechanism. This is a legitimate limitation to report as-is — the pipeline's reliability is not uniform across samples, and the reason is more nuanced than any single hypothesis. Worth stating plainly in the final report rather than cherry-picking only the best-case sample.
+
 ---
 
 ## 9. Milestones & Timeline (6 weeks)
