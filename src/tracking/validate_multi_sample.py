@@ -22,8 +22,8 @@ from src.utils.constants import VOXEL_SCALE_UM
 MAX_LINK_DISTANCE_UM = 6.0
 
 SAMPLES = [
-    {"name": "44b6_0113de3b", "t_start": 27, "t_end": 75},  # original Week 5 sample
-    {"name": "44b6_0b24845f", "t_start": 11, "t_end": 50},
+    {"name": "44b6_0113de3b", "t_start": 0, "t_end": 99},  # original Week 5 sample
+    {"name": "44b6_0b24845f", "t_start": 0, "t_end": 99},
     {"name": "6bba_05b6850b", "t_start": 0, "t_end": 99},
 ]
 

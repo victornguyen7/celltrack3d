@@ -3,8 +3,6 @@ comparable to src/tracking/classical.py (same linker, same gate).
 
 Run: python src/tracking/dl_tracking.py
 """
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from scipy.optimize import linear_sum_assignment
@@ -94,7 +92,7 @@ def evaluate_against_labeled_chain(predicted, nodes_df, t_start, t_end):
 def main():
     nodes_df, edges_df = load_tracks(GEFF_PATH)
 
-    t_start, t_end = 27, 75
+    t_start, t_end = 0, 99
     print(f"Loading DL labels and linking across t={t_start}..{t_end}...")
     predicted = track_range(t_start, t_end)
     print(f"Detected+linked {len(predicted)} instances total")

@@ -17,7 +17,7 @@ from src.io.loaders import load_tracks
 from src.utils.constants import VOXEL_SCALE_UM
 
 SAMPLE = "44b6_0b24845f"
-T_START, T_END = 11, 50
+T_START, T_END = 0, 99
 MAX_LINK_DISTANCE_UM = 6.0
 
 

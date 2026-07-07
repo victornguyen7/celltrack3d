@@ -2,8 +2,6 @@
 
 Run: python src/tracking/laptrack_tracking.py
 """
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from laptrack import LapTrack
@@ -56,7 +54,7 @@ def evaluate_against_labeled_chain(predicted, nodes_df, t_start, t_end):
 def main():
     nodes_df, edges_df = load_tracks(GEFF_PATH)
 
-    t_start, t_end = 27, 75
+    t_start, t_end = 0, 99
     print("Building detections dataframe from DL masks...")
     df = build_detections_df(t_start, t_end)
     print(f"{len(df)} total detections across {t_end - t_start + 1} frames")

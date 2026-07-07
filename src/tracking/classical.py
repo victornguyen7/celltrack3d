@@ -97,7 +97,7 @@ def main():
     volume = load_volume(VOLUME_PATH)
     nodes_df, edges_df = load_tracks(GEFF_PATH)
 
-    t_start, t_end = 27, 75  # the long labeled chain's frame range
+    t_start, t_end = 0, 99  # the long labeled chain's frame range
     print(f"Detecting + linking across t={t_start}..{t_end} (this takes a bit)...")
     predicted = track_range(volume, t_start, t_end)
     print(f"Detected+linked {len(predicted)} instances total")

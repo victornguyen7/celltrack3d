@@ -3,8 +3,6 @@ so we know which frame range is worth spending Cellpose compute on.
 
 Run: python src/io/inspect_sample.py 44b6_0b24845f
 """
-import sys
-
 import networkx as nx
 from pathlib import Path
 import sys
